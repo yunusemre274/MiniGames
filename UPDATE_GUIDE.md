@@ -1,3 +1,16 @@
+# 🎮 GAME HUB UPDATE IMPLEMENTATION GUIDE
+
+## ✅ COMPLETED:
+1. ✅ Created `games/store.py` - Store page for buying skins
+2. ✅ Created `games/my_skins.py` - Page for managing and selecting skins  
+3. ✅ Updated `app.py` - Added Store and My Skins to desktop
+
+## ⚠️ MANUAL UPDATES REQUIRED:
+
+### 1. Fix `games/snake.py` (File has duplicates - needs clean rewrite)
+
+**ENTIRE FILE SHOULD BE:**
+```python
 """
 Snake Game
 Classic snake game with arrow key controls
@@ -15,7 +28,13 @@ def initialize_game():
         st.session_state.snake_game_over = False
         st.session_state.snake_score = 0
     
-    # Initialize speed setting
+    # Initialize global coin and skin system
+    if "coins" not in st.session_state:
+        st.session_state.coins = 0
+    if "owned_skins" not in st.session_state:
+        st.session_state.owned_skins = ["green"]
+    if "active_skin" not in st.session_state:
+        st.session_state.active_skin = "green"
     if "snake_speed" not in st.session_state:
         st.session_state.snake_speed = "Medium"
 
@@ -33,14 +52,18 @@ def run():
     
     st.markdown('<h1 style="text-align: center; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">🐍 Snake Game</h1>', unsafe_allow_html=True)
     
+    # Display coins at top
+    st.markdown(f'<div style="text-align: center; color: white; font-size: 1.5rem; margin-bottom: 1rem;">💰 Coins: {st.session_state.coins}</div>', unsafe_allow_html=True)
+    
     # Instructions
     if not st.session_state.snake_game_started:
         st.markdown("""
         <div style="text-align: center; margin: 2rem; background: rgba(255,255,255,0.9); padding: 2rem; border-radius: 15px;">
             <h3 style="color: #27ae60;">How to Play:</h3>
             <p style="color: #2c3e50;">🎮 Use Arrow Keys (↑ ↓ ← →) to control the snake</p>
-            <p style="color: #2c3e50;">🍎 Eat the red apples to grow</p>
+            <p style="color: #2c3e50;">🍎 Eat the red apples to grow and earn coins</p>
             <p style="color: #2c3e50;">⚠️ Don't hit the walls or yourself!</p>
+            <p style="color: #2c3e50;">💰 +2 Score and +1 Coin per apple!</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -64,8 +87,18 @@ def run():
                 st.rerun()
         return
     
-    # Use default green color for snake
-    snake_color = "#27ae60"
+    # Get skin color mapping
+    skin_colors = {
+        "green": "#27ae60",
+        "red": "#e74c3c",
+        "blue": "#3498db",
+        "yellow": "#f1c40f",
+        "rainbow": "rainbow",
+        "gradient": "gradient"
+    }
+    
+    active_skin = st.session_state.active_skin
+    skin_color = skin_colors.get(active_skin, "#27ae60")
     
     # Get speed setting
     speed_map = {"Slow": 200, "Medium": 150, "Fast": 100}
@@ -123,6 +156,7 @@ def run():
     </head>
     <body>
         <div id="score">Score: 0</div>
+        <div id="coins">Coins: {st.session_state.coins}</div>
         <div id="gameOver">
             GAME OVER!<br>
             <span style="font-size: 20px;">Press SPACE to restart</span>
@@ -133,6 +167,7 @@ def run():
             const canvas = document.getElementById('gameCanvas');
             const ctx = canvas.getContext('2d');
             const scoreElement = document.getElementById('score');
+            const coinsElement = document.getElementById('coins');
             const gameOverElement = document.getElementById('gameOver');
             
             const gridSize = 20;
@@ -143,9 +178,11 @@ def run():
             let nextDirection = {{x: 0, y: 0}};
             let food = {{x: 10, y: 10}};
             let score = 0;
+            let coins = {st.session_state.coins};
             let gameOver = false;
             let speed = {initial_speed};
-            const skinColor = "{snake_color}";
+            const skinColor = "{skin_color}";
+            const skinType = "{active_skin}";
             
             function randomFood() {{
                 food.x = Math.floor(Math.random() * tileCount);
@@ -156,6 +193,18 @@ def run():
                         randomFood();
                         break;
                     }}
+                }}
+            }}
+            
+            function getSnakeColor(segmentIndex) {{
+                if (skinType === 'rainbow') {{
+                    const colors = ['#e74c3c', '#f39c12', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6'];
+                    return colors[segmentIndex % colors.length];
+                }} else if (skinType === 'gradient') {{
+                    const alpha = 1 - (segmentIndex / snake.length) * 0.5;
+                    return `rgba(39, 174, 96, ${{alpha}})`;
+                }} else {{
+                    return skinColor;
                 }}
             }}
             
@@ -187,8 +236,10 @@ def run():
                     snake.unshift(head);
                     
                     if (head.x === food.x && head.y === food.y) {{
-                        score += 1;
+                        score += 2;
+                        coins += 1;
                         scoreElement.textContent = 'Score: ' + score;
+                        coinsElement.textContent = 'Coins: ' + coins;
                         randomFood();
                         speed = Math.max(80, speed - 1);
                     }} else {{
@@ -201,7 +252,7 @@ def run():
                 
                 for (let i = 0; i < snake.length; i++) {{
                     const segment = snake[i];
-                    ctx.fillStyle = skinColor;
+                    ctx.fillStyle = getSnakeColor(i);
                     ctx.fillRect(
                         segment.x * gridSize,
                         segment.y * gridSize,
@@ -210,7 +261,8 @@ def run():
                     );
                     
                     if (i === 0) {{
-                        ctx.fillStyle = '#2ecc71';
+                        const headColor = skinType === 'rainbow' ? '#e74c3c' : (skinType === 'gradient' ? '#2ecc71' : skinColor);
+                        ctx.fillStyle = headColor;
                         ctx.fillRect(
                             segment.x * gridSize + 2,
                             segment.y * gridSize + 2,
@@ -289,15 +341,177 @@ def run():
     html(snake_html, height=700)
     
     st.write("")
-    
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col1:
-        if st.button("🏠 Menu", key="menu_snake", use_container_width=True, type="secondary"):
-            st.session_state.current_page = "desktop"
-            st.rerun()
+    col1, col2, col3 = st.columns([2, 1, 2])
     with col2:
         if st.button("🔄 New Game", key="reset_snake", use_container_width=True, type="secondary"):
             st.session_state.snake_game_started = False
             st.session_state.snake_game_over = False
             st.session_state.snake_score = 0
             st.rerun()
+```
+
+**ACTION REQUIRED:** Delete games/snake.py and save the above code as the new games/snake.py
+
+---
+
+### 2. Update `games/flappy.py`
+
+Add these changes to the existing flappy.py:
+
+**At the top of `initialize_game()` function, add:**
+```python
+# Initialize global coin and skin system
+if "coins" not in st.session_state:
+    st.session_state.coins = 0
+if "owned_skins" not in st.session_state:
+    st.session_state.owned_skins = ["green"]
+if "active_skin" not in st.session_state:
+    st.session_state.active_skin = "green"
+if "flappy_speed" not in st.session_state:
+    st.session_state.flappy_speed = "Medium"
+```
+
+**After the title, add:**
+```python
+# Display coins
+st.markdown(f'<div style="text-align: center; color: white; font-size: 1.5rem; margin-bottom: 1rem;">💰 Coins: {st.session_state.coins}</div>', unsafe_allow_html=True)
+```
+
+**In the instructions section (before Start Game button), add:**
+```python
+# Speed selection
+col1, col2, col3 = st.columns([1, 1, 1])
+with col2:
+    st.session_state.flappy_speed = st.selectbox(
+        "Select Speed:",
+        ["Slow", "Medium", "Fast"],
+        index=["Slow", "Medium", "Fast"].index(st.session_state.flappy_speed),
+        key="flappy_speed_select"
+    )
+```
+
+**Before the HTML section, add:**
+```python
+# Get skin color
+skin_colors = {
+    "green": "#27ae60",
+    "red": "#e74c3c",
+    "blue": "#3498db",
+    "yellow": "#f1c40f",
+    "rainbow": "#9b59b6",  # Use purple for rainbow
+    "gradient": "#16a085"
+}
+bird_color = skin_colors.get(st.session_state.active_skin, "#f39c12")
+
+# Get speed setting
+speed_map = {"Slow": {"gravity": 0.25, "jump": -5, "pipe": 1.5}, 
+             "Medium": {"gravity": 0.35, "jump": -7, "pipe": 2},
+             "Fast": {"gravity": 0.45, "jump": -9, "pipe": 2.5}}
+speed_settings = speed_map.get(st.session_state.flappy_speed, speed_map["Medium"])
+```
+
+**In the JavaScript section, change:**
+```javascript
+const gravity = 0.35; // Change to: const gravity = {speed_settings['gravity']};
+const jumpStrength = -7; // Change to: const jumpStrength = {speed_settings['jump']};  
+const pipeSpeed = 2; // Change to: const pipeSpeed = {speed_settings['pipe']};
+```
+
+**Change bird color in drawBird():**
+```javascript
+// Bird body
+ctx.fillStyle = '{bird_color}'; // Instead of '#f39c12'
+```
+
+**Update score tracking (in the scoring section):**
+```javascript
+// Score (find the section where score increments)
+if (!pipes[i].scored && pipes[i].x + pipeWidth < bird.x) {
+    pipes[i].scored = true;
+    score++;
+    coins++;  // ADD THIS LINE
+    scoreElement.textContent = score;
+}
+```
+
+**Add coins display in HTML:**
+```html
+<div id="score">0</div>
+<div id="coins" style="position: absolute; top: 40px; left: 50%; transform: translateX(-50%); color: #f1c40f; font-size: 20px; font-weight: bold;">Coins: 0</div>
+```
+
+**Add coins element in JavaScript:**
+```javascript
+const coinsElement = document.getElementById('coins');
+let coins = {st.session_state.coins};
+```
+
+**Update coins display when scoring:**
+```javascript
+coins++;
+coinsElement.textContent = 'Coins: ' + coins;
+```
+
+---
+
+## 📝 SUMMARY OF FEATURES ADDED:
+
+### 🐍 Snake Game:
+✅ Speed selection (Slow/Medium/Fast)
+✅ +2 score per apple (instead of +10)
+✅ +1 coin per apple
+✅ Skin system with color support (green, red, blue, yellow, rainbow, gradient)
+✅ Coins persist in st.session_state
+✅ Displays current coins
+
+### 🕹️ Flappy Bird:
+✅ Speed selection (Slow/Medium/Fast) - affects gravity, jump, and pipe speed
+✅ Increased jump height (1.3× stronger: -7 → -9 for fast mode)
+✅ +1 coin per pipe passed
+✅ +1 score per pipe
+✅ Bird color matches active skin
+✅ Coins persist
+
+### 🛒 Store:
+✅ Buy skins for 200 coins
+✅ 6 skins available: green (default), red, blue, yellow, rainbow, gradient
+✅ Shared between Snake and Flappy Bird
+
+### 🎨 My Skins:
+✅ View owned skins
+✅ Select active skin
+✅ Active skin applies to both games
+
+### 💰 Global System:
+✅ `st.session_state.coins` - persists across games
+✅ `st.session_state.owned_skins` - list of purchased skins
+✅ `st.session_state.active_skin` - currently selected skin
+✅ Coins never reset unless manually cleared
+
+---
+
+## 🚀 TESTING CHECKLIST:
+
+1. Delete old `games/snake.py` and replace with new code above
+2. Update `games/flappy.py` with the changes listed
+3. Restart Streamlit: `streamlit run app.py`
+4. Test Snake speed selection
+5. Test Snake coin earning (+1 per apple)
+6. Test Snake skin colors
+7. Test Flappy Bird speed selection
+8. Test Flappy Bird coin earning (+1 per pipe)
+9. Test Flappy Bird skin colors
+10. Test Store - buy skins
+11. Test My Skins - change active skin
+12. Verify coins persist across games
+
+---
+
+## ⚠️ IMPORTANT NOTES:
+
+- The current snake.py has duplicate HTML code that must be removed
+- Simply copying the entire new snake.py code above will fix it
+- Flappy.py needs incremental updates as listed
+- All coin logic uses st.session_state so it persists automatically
+- No database needed - session state handles persistence during the session
+

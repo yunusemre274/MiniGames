@@ -111,6 +111,10 @@ def show_desktop():
     
     st.markdown('<div class="desktop-title">🎮 Game Hub Desktop</div>', unsafe_allow_html=True)
     
+    # Display coins if initialized
+    if "coins" in st.session_state:
+        st.markdown(f'<div style="text-align: center; color: white; font-size: 1.5rem; margin-bottom: 1rem;">💰 Coins: {st.session_state.coins}</div>', unsafe_allow_html=True)
+    
     # Game definitions
     games = [
         {"name": "Snake", "emoji": "🐍", "key": "snake"},
@@ -118,6 +122,8 @@ def show_desktop():
         {"name": "XOX", "emoji": "❌⭕", "key": "xox"},
         {"name": "Ping Pong", "emoji": "🏓", "key": "pong"},
         {"name": "Beaver Hit", "emoji": "🦫", "key": "beaver"},
+        {"name": "Store", "emoji": "🛒", "key": "store"},
+        {"name": "My Skins", "emoji": "🎨", "key": "my_skins"},
     ]
     
     # Create grid layout (3 columns for better spacing)
@@ -155,6 +161,23 @@ def show_desktop():
             if st.button(f"Launch {game['name']}", key=f"btn_{game['key']}", use_container_width=True):
                 st.session_state.active_game = game['key']
                 st.rerun()
+    
+    st.write("")  # Spacing between rows
+    
+    # Third row - Store and My Skins (centered)
+    cols = st.columns([1, 2, 2, 1])
+    for idx in range(2):
+        with cols[idx + 1]:
+            game = games[idx + 5]
+            st.markdown(f"""
+                <div class="game-icon">
+                    <div class="game-emoji">{game['emoji']}</div>
+                    <div class="game-title">{game['name']}</div>
+                </div>
+            """, unsafe_allow_html=True)
+            if st.button(f"Launch {game['name']}", key=f"btn_{game['key']}", use_container_width=True):
+                st.session_state.active_game = game['key']
+                st.rerun()
 
 def back_to_desktop():
     """Return to the main desktop"""
@@ -177,7 +200,7 @@ def main():
             if st.button("⬅️ Back to Desktop", key="back_button", use_container_width=True, type="secondary"):
                 back_to_desktop()
         
-        # Launch the selected game
+        # Launch the selected game or page
         try:
             if active_game == "snake":
                 from games import snake
@@ -194,6 +217,12 @@ def main():
             elif active_game == "beaver":
                 from games import beaver_hit
                 beaver_hit.run()
+            elif active_game == "store":
+                from games import store
+                store.run()
+            elif active_game == "my_skins":
+                from games import my_skins
+                my_skins.run()
         except Exception as e:
             st.error(f"Error loading game: {e}")
             st.info("This game is still under development. Click 'Back to Desktop' to return.")

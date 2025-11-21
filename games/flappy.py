@@ -10,6 +10,10 @@ def initialize_game():
     """Initialize game state"""
     if "flappy_game_started" not in st.session_state:
         st.session_state.flappy_game_started = False
+    
+    # Initialize speed setting
+    if "flappy_speed" not in st.session_state:
+        st.session_state.flappy_speed = "Medium"
 
 def run():
     """Main game function"""
@@ -32,9 +36,20 @@ def run():
             <h3 style="color: #3498db;">How to Play:</h3>
             <p style="color: #2c3e50;">🐦 Click or press SPACE to make the bird fly</p>
             <p style="color: #2c3e50;">🚧 Avoid the pipes!</p>
-            <p style="color: #2c3e50;">⭐ Try to get the highest score!</p>
         </div>
         """, unsafe_allow_html=True)
+        
+        st.write("")
+        
+        # Speed selection
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col2:
+            st.session_state.flappy_speed = st.selectbox(
+                "Select Speed:",
+                ["Slow", "Medium", "Fast"],
+                index=["Slow", "Medium", "Fast"].index(st.session_state.flappy_speed),
+                key="flappy_speed_select"
+            )
         
         st.write("")
         col1, col2, col3 = st.columns([2, 1, 2])
@@ -44,26 +59,37 @@ def run():
                 st.rerun()
         return
     
+    # Use default green color for bird
+    bird_color = "#27ae60"
+    
+    # Get speed settings
+    speed_map = {
+        "Slow": {"gravity": 0.3, "jump": -5.5, "pipe": 2},
+        "Medium": {"gravity": 0.4, "jump": -7.5, "pipe": 2.5},
+        "Fast": {"gravity": 0.5, "jump": -9.5, "pipe": 3}
+    }
+    speed_settings = speed_map.get(st.session_state.flappy_speed, speed_map["Medium"])
+    
     # Game canvas with HTML5/JavaScript
-    flappy_html = """
+    flappy_html = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <style>
-            body {
+            body {{
                 display: flex;
                 justify-content: center;
                 align-items: center;
                 margin: 0;
                 background: linear-gradient(to bottom, #87CEEB 0%, #E0F6FF 100%);
                 font-family: Arial, sans-serif;
-            }
-            #gameCanvas {
+            }}
+            #gameCanvas {{
                 border: 4px solid #3498db;
                 box-shadow: 0 0 20px rgba(52, 152, 219, 0.5);
                 cursor: pointer;
-            }
-            #score {
+            }}
+            #score {{
                 position: absolute;
                 top: 20px;
                 left: 50%;
@@ -72,8 +98,8 @@ def run():
                 font-size: 48px;
                 font-weight: bold;
                 text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-            }
-            #gameOver {
+            }}
+            #gameOver {{
                 position: absolute;
                 top: 50%;
                 left: 50%;
@@ -87,7 +113,7 @@ def run():
                 padding: 30px;
                 border-radius: 15px;
                 box-shadow: 0 0 30px rgba(0,0,0,0.3);
-            }
+            }}
         </style>
     </head>
     <body>
@@ -106,68 +132,69 @@ def run():
             const gameOverElement = document.getElementById('gameOver');
             const finalScoreElement = document.getElementById('finalScore');
             
-            let bird = {
+            let bird = {{
                 x: 80,
                 y: 250,
                 velocity: 0,
                 radius: 15
-            };
+            }};
             
             let pipes = [];
             let score = 0;
             let gameOver = false;
             let frameCount = 0;
+            const birdColor = "{bird_color}";
             
-            const gravity = 0.35; // Reduced gravity (was 0.5)
-            const jumpStrength = -7; // Reduced jump strength (was -9)
+            const gravity = {speed_settings['gravity']};
+            const jumpStrength = {speed_settings['jump']};
             const pipeWidth = 60;
-            const pipeGap = 180; // Larger gap (was 150)
-            const pipeSpeed = 2; // Slower pipes (was 3)
+            const pipeGap = 180;
+            const pipeSpeed = {speed_settings['pipe']};
             
-            function createPipe() {
+            function createPipe() {{
                 const minHeight = 50;
                 const maxHeight = canvas.height - pipeGap - 50;
                 const height = Math.random() * (maxHeight - minHeight) + minHeight;
                 
-                pipes.push({
+                pipes.push({{
                     x: canvas.width,
                     topHeight: height,
                     bottomY: height + pipeGap,
                     scored: false
-                });
-            }
+                }});
+            }}
             
-            function jump() {
-                if (!gameOver) {
+            function jump() {{
+                if (!gameOver) {{
                     bird.velocity = jumpStrength;
-                } else {
+                }} else {{
                     // Restart game
-                    bird = {
+                    bird = {{
                         x: 80,
                         y: 250,
                         velocity: 0,
                         radius: 15
-                    };
+                    }};
                     pipes = [];
                     score = 0;
                     gameOver = false;
                     frameCount = 0;
                     scoreElement.textContent = '0';
                     gameOverElement.style.display = 'none';
-                }
-            }
+                }}
+            }}
             
             canvas.addEventListener('click', jump);
-            document.addEventListener('keydown', (e) => {
-                if (e.code === 'Space') {
+            document.addEventListener('keydown', (e) => {{
+                if (e.code === 'Space') {{
                     e.preventDefault();
                     jump();
-                }
-            });
+                }}
+            }});
             
-            function drawBird() {
+            function drawBird() {{
                 // Bird body
-                ctx.fillStyle = '#f39c12';
+                ctx.fillStyle = birdColor;
                 ctx.beginPath();
                 ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2);
                 ctx.fill();
@@ -191,11 +218,11 @@ def run():
                 ctx.lineTo(bird.x + bird.radius + 10, bird.y + 3);
                 ctx.closePath();
                 ctx.fill();
-            }
+            }}
             
-            function drawPipes() {
+            function drawPipes() {{
                 ctx.fillStyle = '#27ae60';
-                pipes.forEach(pipe => {
+                pipes.forEach(pipe => {{
                     // Top pipe
                     ctx.fillRect(pipe.x, 0, pipeWidth, pipe.topHeight);
                     // Top pipe cap
@@ -211,10 +238,10 @@ def run():
                     ctx.lineWidth = 3;
                     ctx.strokeRect(pipe.x, 0, pipeWidth, pipe.topHeight);
                     ctx.strokeRect(pipe.x, pipe.bottomY, pipeWidth, canvas.height - pipe.bottomY);
-                });
-            }
+                }});
+            }}
             
-            function updateGame() {
+            function updateGame() {{
                 if (gameOver) return;
                 
                 frameCount++;
@@ -224,50 +251,50 @@ def run():
                 bird.y += bird.velocity;
                 
                 // Check ground/ceiling collision
-                if (bird.y + bird.radius > canvas.height || bird.y - bird.radius < 0) {
+                if (bird.y + bird.radius > canvas.height || bird.y - bird.radius < 0) {{
                     gameOver = true;
                     gameOverElement.style.display = 'block';
                     finalScoreElement.textContent = score;
                     return;
-                }
+                }}
                 
                 // Create pipes
-                if (frameCount % 110 === 0) { // More spacing between pipes (was 90)
+                if (frameCount % 110 === 0) {{ // More spacing between pipes (was 90)
                     createPipe();
-                }
+                }}
                 
                 // Update pipes
-                for (let i = pipes.length - 1; i >= 0; i--) {
+                for (let i = pipes.length - 1; i >= 0; i--) {{
                     pipes[i].x -= pipeSpeed;
                     
                     // Remove off-screen pipes
-                    if (pipes[i].x + pipeWidth < 0) {
+                    if (pipes[i].x + pipeWidth < 0) {{
                         pipes.splice(i, 1);
                         continue;
-                    }
+                    }}
                     
                     // Check collision
                     if (bird.x + bird.radius > pipes[i].x && 
-                        bird.x - bird.radius < pipes[i].x + pipeWidth) {
+                        bird.x - bird.radius < pipes[i].x + pipeWidth) {{
                         if (bird.y - bird.radius < pipes[i].topHeight || 
-                            bird.y + bird.radius > pipes[i].bottomY) {
+                            bird.y + bird.radius > pipes[i].bottomY) {{
                             gameOver = true;
                             gameOverElement.style.display = 'block';
                             finalScoreElement.textContent = score;
                             return;
-                        }
-                    }
+                        }}
+                    }}
                     
                     // Score
-                    if (!pipes[i].scored && pipes[i].x + pipeWidth < bird.x) {
+                    if (!pipes[i].scored && pipes[i].x + pipeWidth < bird.x) {{
                         pipes[i].scored = true;
                         score++;
                         scoreElement.textContent = score;
-                    }
-                }
-            }
+                    }}
+                }}
+            }}
             
-            function drawGame() {
+            function drawGame() {{
                 // Sky background
                 const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
                 gradient.addColorStop(0, '#87CEEB');
@@ -287,7 +314,7 @@ def run():
                 drawBird();
                 updateGame();
                 requestAnimationFrame(drawGame);
-            }
+            }}
             
             drawGame();
         </script>
@@ -298,9 +325,13 @@ def run():
     # Display the game
     html(flappy_html, height=700)
     
-    # Reset button
     st.write("")
-    col1, col2, col3 = st.columns([2, 1, 2])
+    
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col1:
+        if st.button("🏠 Menu", key="menu_flappy", use_container_width=True, type="secondary"):
+            st.session_state.current_page = "desktop"
+            st.rerun()
     with col2:
         if st.button("🔄 New Game", key="reset_flappy", use_container_width=True, type="secondary"):
             st.session_state.flappy_game_started = False
